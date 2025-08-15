@@ -1,125 +1,79 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import RatingStars from '../../components/RatingStars';
 import { useFetchAllProductsQuery } from '../../redux/features/products/productsApi';
-import { useSelector } from 'react-redux';
 
-const TrendingProducts = () => {
-    const [visibleProducts, setVisibleProducts] = useState(4);
-    const { country } = useSelector((state) => state.cart);
-    const { data: { products = [] } = {}, error, isLoading } = useFetchAllProductsQuery({
-        category: '',
-        page: 1,
-        limit: 20,
-    });
+const TrendingProducts = ({ index = 0, flip = false }) => {
+  const {
+    data: { products = [] } = {},
+    error,
+    isLoading,
+  } = useFetchAllProductsQuery({ category: '', page: 1, limit: 50 });
 
-    // تحديد العملة وسعر الصرف
-    const currency = country === 'الإمارات' ? 'د.إ' : 'ر.ع.';
-    const exchangeRate = country === 'الإمارات' ? 9.5 : 1;
+  if (isLoading) return <div className="text-center py-12 text-gray-600">جاري التحميل...</div>;
+  if (error) return <div className="text-center py-12 text-red-500">حدث خطأ أثناء جلب البيانات.</div>;
 
-    const loadMoreProducts = () => {
-        setVisibleProducts((prevCount) => prevCount + 4);
-    };
+  // ترتيب من الأحدث إلى الأقدم
+  const sorted = [...products].sort(
+    (a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0)
+  );
 
-    const getFirstPrice = (product) => {
-        if (!product) return 0;
-        
-        if (product.category === 'حناء بودر' && product.price && typeof product.price === 'object') {
-            return (product.price['500 جرام'] || product.price['1 كيلو'] || 0) * exchangeRate;
-        }
-        
-        return (product.regularPrice || product.price || 0) * exchangeRate;
-    };
+  const product = sorted[index];
+  if (!product) return null;
 
-    const getOldPrice = (product) => {
-        if (!product.oldPrice) return null;
-        return product.oldPrice * exchangeRate;
-    };
+  // شبكة الأعمدة: ثابتة 496px للصورة، والباقي للنص
+  const gridCols = flip ? 'md:grid-cols-[1fr_496px]' : 'md:grid-cols-[496px_1fr]';
 
-    if (isLoading) {
-        return <div className="text-center py-8">جاري التحميل...</div>;
-    }
-
-    if (error) {
-        return <div className="text-center py-8 text-red-500">حدث خطأ أثناء جلب البيانات.</div>;
-    }
-
-    return (
-        <section className="section__container product__container">
-            <h2 className="section__header text-3xl font-bold text-[#e2e5e5] mb-4">
-                منتجات جديدة
-            </h2>
-            <p className="section__subheader text-lg text-gray-600 mb-12" dir='rtl'>
-                اكتشف سر الجمال الطبيعي مع تشكيلتنا المختارة من الأعشاب والمنتجات التقليدية الأصيلة!
-            </p>
-
-            <div className="mt-12" dir='rtl'>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {products.slice(0, visibleProducts).map((product) => {
-                        const price = getFirstPrice(product);
-                        const oldPrice = getOldPrice(product);
-                        const discountPercentage = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
-                        
-                        return (
-                            <div 
-                                key={product._id} 
-                                className="product__card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative flex flex-col h-full"
-                            >
-                                {oldPrice && (
-                                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
-                                        خصم {discountPercentage}%
-                                    </div>
-                                )}
-
-                                <div className="relative flex-grow">
-                                    <Link to={`/shop/${product._id}`} className="block h-full">
-                                        <div className="h-80 w-full overflow-hidden">
-                                            <img
-                                                src={product.image?.[0] || "https://via.placeholder.com/300"}
-                                                alt={product.name || "صورة المنتج"}
-                                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                                                onError={(e) => {
-                                                    e.target.src = "https://via.placeholder.com/300";
-                                                    e.target.alt = "صورة المنتج غير متوفرة";
-                                                }}
-                                            />
-                                        </div>
-                                    </Link>
-                                </div>
-
-                                <div className="p-4">
-                                    <h4 className="text-lg font-semibold mb-1 line-clamp-2" title={product.name}>
-                                        {product.name || "اسم المنتج"}
-                                    </h4>
-                                    <p className="text-gray-500 text-sm mb-3">{product.category || "فئة غير محددة"}</p>
-                                    
-                                    <div className="space-y-1">
-                                        <div className="font-medium text-lg">
-                                            {price.toFixed(2)} {currency}
-                                        </div>
-                                        {oldPrice && (
-                                            <s className="text-gray-500 text-sm">{oldPrice.toFixed(2)} {currency}</s>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+  return (
+    <section className="py-10 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <article className="relative overflow-hidden rounded-2xl bg-white shadow-sm  ring-black/5">
+          <div className={`grid grid-cols-1 ${gridCols} gap-8 md:gap-16 items-center`}>
+            {/* الصورة (يسار افتراضيًا، يمين إذا flip) */}
+            <div className={flip ? 'order-2 md:order-2' : 'order-1 md:order-1'}>
+              <Link to={`/shop/${product._id}`} className="block">
+                <div className="w-full aspect-[4/5] overflow-hidden md:w-[496px] md:h-[618px] md:aspect-auto">
+                  <img
+                    src={product.image?.[0] || 'https://via.placeholder.com/900x1200'}
+                    alt={product?.name || ''}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/900x1200';
+                    }}
+                  />
                 </div>
+              </Link>
             </div>
 
-            {visibleProducts < products.length && (
-                <div className="product__btn text-center mt-8" dir='rtl'>
-                    <button 
-                        className="btn bg-[#9B2D1F] text-white px-6 py-2 rounded-md transition-colors"
-                        onClick={loadMoreProducts}
-                    >
-                        عرض المزيد
-                    </button>
-                </div>
-            )}
-        </section>
-    );
+            {/* الاسم + الوصف + Shop Now (محاذاة يسار دائمًا) */}
+            <div
+              className={`${flip ? 'order-1 md:order-1' : 'order-2 md:order-2'} flex flex-col items-start text-left md:pl-6 lg:pl-10`}
+              dir="ltr"
+            >
+              {product?.name && (
+                <h3 className="uppercase text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-wide text-gray-900 mb-6">
+                  {product.name}
+                </h3>
+              )}
+
+              {product?.description && (
+                <p className="text-gray-600 text-base md:text-lg leading-8 whitespace-pre-line mb-8 max-w-[620px]">
+                  {product.description}
+                </p>
+              )}
+
+              <Link
+                to={`/shop/${product._id}`}
+                className="inline-flex items-center justify-center rounded-md bg-[#9B2D1F] px-7 py-4 text-white text-sm md:text-base font-semibold shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9B2D1F]"
+                aria-label={product?.name ? `Open ${product.name}` : 'Open product'}
+              >
+                Shop Now
+              </Link>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
 };
 
-export default TrendingProducts; 
+export default TrendingProducts;

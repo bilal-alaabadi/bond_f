@@ -5,43 +5,40 @@ import CartModal from '../pages/shop/CartModal';
 import avatarImg from "../assets/avatar.png";
 import { useLogoutUserMutation } from '../redux/features/auth/authApi';
 import { logout } from '../redux/features/auth/authSlice';
-import log from "../assets/_º_ä_____º__-removebg-preview.png";
-import { setCountry } from '../redux/features/cart/cartSlice';
+import logo from "../assets/LOGO_Bond Var1.png";
 
 const Navbar = () => {
-    const products = useSelector((state) => state.cart.products);
-    const { country } = useSelector((state) => state.cart);
+    // State management
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const { user } = useSelector((state) => state.auth);
     const [isDropDownOpen, setIsDropDownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    
+    // Redux and navigation
+    const products = useSelector((state) => state.cart.products);
+    const { user } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
-    const navigate = useNavigate();
     const [logoutUser] = useLogoutUserMutation();
+    const navigate = useNavigate();
 
-    const handleCartToggle = () => setIsCartOpen(!isCartOpen);
-    const handleDropDownToggle = () => setIsDropDownOpen(!isDropDownOpen);
-    const handleMobileMenuToggle = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-
-    const handleCountryChange = (e) => {
-        dispatch(setCountry(e.target.value));
-    };
-
+    // Menu configurations
     const adminMenus = [
-        { label: "لوحة التحكم", path: "/dashboard/admin" },
-        { label: "إدارة العناصر", path: "/dashboard/manage-products" },
-        { label: "جميع الطلبات", path: "/dashboard/manage-orders" },
-        { label: "إضافة منتج", path: "/dashboard/add-product" },
+        { label: "Dashboard", path: "/dashboard/admin" },
+        { label: "Manage Products", path: "/dashboard/manage-products" },
+        { label: "Add Product", path: "/dashboard/add-product" },
     ];
 
     const userMenus = [
-        { label: "لوحة التحكم", path: "/dashboard" },
-        // { label: "الملف الشخصي", path: "/dashboard/profile" },
-        // { label: "المدفوعات", path: "/dashboard/payments" },
-        // { label: "الطلبات", path: "/dashboard/orders" },
+        { label: "Dashboard", path: "/dashboard" },
     ];
 
     const dropdownMenus = user?.role === 'admin' ? adminMenus : userMenus;
+    const totalCartItems = products.reduce((total, item) => total + item.quantity, 0);
+
+    // Handler functions
+    const handleCartToggle = () => setIsCartOpen(!isCartOpen);
+    const handleDropDownToggle = () => setIsDropDownOpen(!isDropDownOpen);
+    const handleMobileMenuToggle = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+    const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
     const handleLogout = async () => {
         try {
@@ -49,232 +46,91 @@ const Navbar = () => {
             dispatch(logout());
             navigate('/');
         } catch (error) {
-            console.error("Failed to log out", error);
+            console.error("Logout failed:", error);
         }
     };
 
-    const currency = country === 'الإمارات' ? 'د.إ' : 'ر.ع.';
-
     return (
-        <header className="w-full bg-white shadow-sm relative z-50 pt-10 ">
-            <div className="mx-auto px-4">
-                {/* Mobile Navigation */}
-                <div className="md:hidden flex items-center justify-between h-16 mb-2 pb-12 pt-4">
-                    <button 
+        <header className="fixed w-full bg-white shadow-sm z-50">
+            <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-24 relative">
+                    
+                    {/* Mobile menu button */}
+                    <button
                         onClick={handleMobileMenuToggle}
-                        className="text-gray-800 text-2xl"
+                        className="sm:hidden text-gray-700 hover:text-[#d3ae27]"
                     >
-                        <i className="ri-menu-line"></i>
+                        <i className="ri-menu-line text-2xl"></i>
                     </button>
 
+                    {/* Desktop Navigation Links */}
+                    <nav className="hidden sm:flex space-x-8 flex-1">
+                        <div className="flex items-center space-x-8">
+                            <NavLink to="/" text="Home" />
+                            <NavLink to="/shop" text="Products" />
+                            <NavLink to="/about" text="About" />
+                        </div>
+                    </nav>
+
+                    {/* Logo - Centered */}
                     <div className="absolute left-1/2 transform -translate-x-1/2">
                         <Link to="/">
                             <img 
-                                src={log} 
-                                alt="شعار المتجر" 
-                                className="h-24 object-contain"
+                                src={logo} 
+                                alt="Company Logo" 
+                                className="h-20 w-auto object-contain"
+                                loading="lazy"
                             />
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-4" dir='rtl'>
+                    {/* Right Side Icons */}
+                    <div className="flex items-center space-x-6 flex-1 justify-end">
+                        <NavIcon 
+                            icon="ri-search-line" 
+                            to="/search" 
+                            ariaLabel="Search"
+                        />
+                        
+                        <button 
+                            onClick={handleCartToggle}
+                            className="relative hover:text-[#d3ae27]"
+                            aria-label="Cart"
+                        >
+                            <i className="ri-shopping-bag-line text-xl"></i>
+                            {totalCartItems > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-[#d3ae27] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                    {totalCartItems}
+                                </span>
+                            )}
+                        </button>
+
                         {user ? (
-                            <div className="relative">
-                                <img
-                                    onClick={handleDropDownToggle}
-                                    src={user?.profileImage || avatarImg}
-                                    alt="صورة المستخدم"
-                                    className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-200"
-                                />
-                                {isDropDownOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                        <ul className="py-2">
-                                            {dropdownMenus.map((menu, index) => (
-                                                <li key={index}>
-                                                    <Link
-                                                        to={menu.path}
-                                                        onClick={() => setIsDropDownOpen(false)}
-                                                        className="block px-4 py-3 text-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                        {menu.label}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                            <li>
-                                                <button
-                                                    onClick={handleLogout}
-                                                    className="block w-full text-right px-4 py-3 text-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                                                >
-                                                    تسجيل الخروج
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <Link to="/login" className="text-[#4E5A3F] text-2xl">
-                                <i className="ri-user-line"></i>
-                            </Link>
-                        )}
-
-                        <button 
-                            onClick={handleCartToggle}
-                            className="relative text-[#4E5A3F] text-2xl"
-                        >
-                            <i className="ri-shopping-bag-line"></i>
-                            {products.length > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-[#d3ae27] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                    {products.length}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center justify-between h-20 pb-7">
-                    <div className="flex items-center gap-8">
-                        <select
-                            value={country}
-                            onChange={handleCountryChange}
-                            className="p-2 border rounded-md text-[#4E5A3F] bg-white"
-                        >
-                            <option value="عمان">عمان (ر.ع.)</option>
-                            <option value="الإمارات">الإمارات (د.إ)</option>
-                        </select>
-                       
-                        <button 
-                            onClick={handleCartToggle}
-                            className="relative text-[#4E5A3F] hover:text-[#9B2D1F] text-3xl"
-                        >
-                            <i className="ri-shopping-bag-line"></i>
-                            {products.length > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-[#d3ae27] text-white text-sm rounded-full w-6 h-6 flex items-center justify-center">
-                                    {products.length}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-
-                    <div className="flex-grow flex justify-center">
-                        <Link to="/">
-                            <img 
-                                src={log} 
-                                alt="شعار المتجر" 
-                                className="h-28 object-contain hover:scale-105 transition-transform"
+                            <UserDropdown 
+                                user={user} 
+                                avatarImg={avatarImg}
+                                isOpen={isDropDownOpen}
+                                menus={dropdownMenus}
+                                onToggle={handleDropDownToggle}
+                                onLogout={handleLogout}
                             />
-                        </Link>
-                    </div>
-
-                    <div className="flex items-center gap-4" dir='rtl'>
-                        {user ? (
-                            <div className="relative">
-                                <img
-                                    onClick={handleDropDownToggle}
-                                    src={user?.profileImage || avatarImg}
-                                    alt="صورة المستخدم"
-                                    className="w-12 h-12 rounded-full cursor-pointer border-2 border-gray-200 hover:text-[#9B2D1F] transition-colors"
-                                />
-                                {isDropDownOpen && (
-                                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                        <ul className="py-2">
-                                            {dropdownMenus.map((menu, index) => (
-                                                <li key={index}>
-                                                    <Link
-                                                        to={menu.path}
-                                                        onClick={() => setIsDropDownOpen(false)}
-                                                        className="block px-4 py-3 text-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                        {menu.label}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                            <li>
-                                                <button
-                                                    onClick={handleLogout}
-                                                    className="block w-full text-right px-4 py-3 text-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                                                >
-                                                    تسجيل الخروج
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
                         ) : (
-                            <Link 
+                            <NavIcon 
+                                icon="ri-user-line" 
                                 to="/login" 
-                                className="text-[#4E5A3F] hover:text-[#9B2D1F] text-3xl transition-colors"
-                            >
-                                <i className="ri-user-line"></i>
-                            </Link>
+                                ariaLabel="Login"
+                            />
                         )}
                     </div>
                 </div>
-
-                {/* Navigation Links */}
-                <nav className="hidden md:flex justify-center border-t border-gray-200 py-4 mt-2">
-                    <div className="flex gap-10">
-                        <Link to="/shop" className="text-[#4E5A3F] hover:text-[#9B2D1F] font-bold text-xl transition-colors">
-                            المنتجات
-                        </Link>
-                        <Link to="/" className="text-[#4E5A3F] hover:text-[#9B2D1F] font-bold text-xl transition-colors">
-                            الصفحة الرئيسية
-                        </Link>
-                        <Link to="/about" className="text-[#4E5A3F] hover:text-[#9B2D1F] font-bold text-xl transition-colors">
-                            قصة حناء برغند
-                        </Link>
-                    </div>
-                </nav>
             </div>
 
             {/* Mobile Menu */}
-            <div className={`md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <div className="px-6 py-6 flex flex-col items-center gap-4">
-                        <button 
-                            onClick={handleMobileMenuToggle}
-                            className="absolute top-4 left-4 text-gray-500 hover:text-gray-700 text-2xl"
-                        >
-                            <i className="ri-close-line"></i>
-                        </button>
-                        
-<select
-    value={country}
-    onChange={handleCountryChange}
-    className="w-full p-3 text-lg border-2 border-[#4E5A3F] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#9B2D1F] focus:border-transparent"
->
-    <option value="عمان">عمان 🇴🇲 (ر.ع.)</option>
-    <option value="الإمارات">الإمارات 🇦🇪 (د.إ)</option>
-</select>
-                        
-                        <Link 
-                            to="/shop" 
-                            onClick={handleMobileMenuToggle}
-                            className="w-full text-center py-4 px-6 font-medium text-xl text-[#4E5A3F] hover:text-[#9B2D1F] rounded-lg transition-all duration-300"
-                        >
-                            المنتجات
-                        </Link>
-                        <Link 
-                            to="/" 
-                            onClick={handleMobileMenuToggle}
-                            className="w-full text-center py-4 px-6 font-medium text-xl text-[#4E5A3F] hover:text-[#9B2D1F] rounded-lg transition-all duration-300"
-                        >
-                            الصفحة الرئيسية
-                        </Link>
-                        <Link 
-                            to="/about" 
-                            onClick={handleMobileMenuToggle}
-                            className="w-full text-center py-4 px-6 font-medium text-xl text-[#4E5A3F] hover:text-[#9B2D1F] rounded-lg transition-all duration-300"
-                        >
-                            قصة حناء برغند
-                        </Link>
-                    </div>
-                </div>
-            </div>
+            {isMobileMenuOpen && (
+                <MobileMenu onClose={closeMobileMenu} user={user} />
+            )}
 
-            {/* Cart Modal */} 
+            {/* Cart Modal */}
             {isCartOpen && (
                 <CartModal 
                     products={products} 
@@ -285,5 +141,81 @@ const Navbar = () => {
         </header>
     );
 };
+
+// Reusable components
+const NavLink = ({ to, text }) => (
+    <Link 
+        to={to} 
+        className="text-lg font-medium hover:text-[#d3ae27] transition-colors duration-300"
+    >
+        {text}
+    </Link>
+);
+
+const NavIcon = ({ icon, to, ariaLabel }) => (
+    <Link 
+        to={to} 
+        className="hover:text-[#d3ae27] transition-colors duration-300"
+        aria-label={ariaLabel}
+    >
+        <i className={`${icon} text-xl`}></i>
+    </Link>
+);
+
+const UserDropdown = ({ user, avatarImg, isOpen, menus, onToggle, onLogout }) => (
+    <div className="relative">
+        <button onClick={onToggle} aria-label="User menu">
+            <img
+                src={user?.profileImage || avatarImg}
+                alt="User avatar"
+                className="w-8 h-8 rounded-full cursor-pointer"
+            />
+        </button>
+        
+        {isOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                {menus.map((menu, index) => (
+                    <Link
+                        key={index}
+                        to={menu.path}
+                        onClick={() => onToggle(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                        {menu.label}
+                    </Link>
+                ))}
+                <button
+                    onClick={onLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                    Logout
+                </button>
+            </div>
+        )}
+    </div>
+);
+
+const MobileMenu = ({ onClose, user }) => (
+    <div className="sm:hidden absolute top-24 left-0 right-0 bg-white shadow-lg z-40">
+        <div className="px-2 pt-2 pb-4 space-y-2">
+            <MobileLink to="/" text="Home" onClick={onClose} />
+            <MobileLink to="/shop" text="Products" onClick={onClose} />
+            <MobileLink to="/about" text="About" onClick={onClose} />
+            <MobileLink to="/search" text="Search" icon="ri-search-line" onClick={onClose} />
+            {!user && <MobileLink to="/login" text="Login" icon="ri-user-line" onClick={onClose} />}
+        </div>
+    </div>
+);
+
+const MobileLink = ({ to, text, icon, onClick }) => (
+    <Link
+        to={to}
+        onClick={onClick}
+        className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+    >
+        {icon && <i className={`${icon} mr-2`}></i>}
+        {text}
+    </Link>
+);
 
 export default Navbar;

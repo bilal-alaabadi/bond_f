@@ -51,20 +51,10 @@ const ShopPage = () => {
     return (
         <>
             {/* Hero Section with Image */}
-            <section className='relative h-64 md:h-80 lg:h-96 w-full overflow-hidden bg-[#e2e5e5]'>
-                <img 
-                    src={imge} 
-                    alt="متجر حناء برغند" 
-                    className="w-full h-full object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center px-4">
-                    </h1>
-                </div>
-            </section>
+
 
             {/* Products Section */}
-            <section className='section__container py-8'>
+            <section className=' py-8'>
                 <div className='flex flex-col md:flex-row md:gap-8 gap-6'>
                     {/* Filters Section */}
                     <div className='md:w-1/4'>
