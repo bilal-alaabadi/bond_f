@@ -1,96 +1,42 @@
-import React from 'react';
-import { RiCloseLine } from "react-icons/ri";
-import { useSelector, useDispatch } from 'react-redux';
-import { updateQuantity, removeFromCart } from '../../redux/features/cart/cartSlice';
-import OrderSummary from './OrderSummary';
+import React, { useEffect } from "react";
+import OrderSummary from "./OrderSummary";
 
-const CartModal = ({ products, isOpen, onClose }) => {
-    const dispatch = useDispatch();
-    const { totalPrice, country } = useSelector((state) => state.cart);
-    
-    // تحديد العملة ورسوم الشحن حسب الدولة
-    const currency = country === 'الإمارات' ? 'د.إ' : 'ر.ع.';
-    const exchangeRate = country === 'الإمارات' ? 9.5 : 1;
-    const shippingFee = country === 'الإمارات' ? 4 : 2;
+const CartModal = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => (document.body.style.overflow = "");
+  }, [isOpen]);
 
-    const formatPrice = (price) => {
-        return (price * exchangeRate).toFixed(2);
-    };
+  if (!isOpen) return null;
 
-    if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100]">
+      {/* Overlay */}
+      <button
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+      />
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
-            <div className="bg-white w-full max-w-md h-full overflow-y-auto">
-                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-[#4E5A3F]">سلة التسوق</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                        <RiCloseLine size={24} />
-                    </button>
-                </div>
-
-                <div className="p-4 space-y-4">
-                    {products.length === 0 ? (
-                        <p className="text-center py-8">سلة التسوق فارغة</p>
-                    ) : (
-                        <>
-                            {products.map((product) => (
-                                <div key={product._id} className="flex justify-between items-center border-b border-gray-100 py-4">
-                                    <div className="flex items-center gap-4">
-                                        <img 
-                                            src={Array.isArray(product.image) ? product.image[0] : product.image} 
-                                            alt={product.name} 
-                                            className="w-16 h-16 object-cover rounded"
-                                        />
-                                        <div>
-                                            <h3 className="font-medium">{product.name}</h3>
-                                            <p className="text-gray-600">{formatPrice(product.price)} {currency}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button 
-                                            onClick={() => dispatch(updateQuantity({ id: product._id, type: 'decrement' }))}
-                                            className="w-8 h-8 flex items-center justify-center border rounded"
-                                        >
-                                            -
-                                        </button>
-                                        <span>{product.quantity}</span>
-                                        <button 
-                                            onClick={() => dispatch(updateQuantity({ id: product._id, type: 'increment' }))}
-                                            className="w-8 h-8 flex items-center justify-center border rounded"
-                                        >
-                                            +
-                                        </button>
-                                        <button 
-                                            onClick={() => dispatch(removeFromCart({ id: product._id }))}
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <RiCloseLine size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {/* <div className="border-t border-gray-200 pt-4">
-                                <div className="flex justify-between py-2">
-                                    <span>رسوم الشحن</span>
-                                    <span>{formatPrice(shippingFee)} {currency}</span>
-                                </div>
-                                <div className="flex justify-between py-2 font-bold">
-                                    <span>الإجمالي</span>
-                                    <span>{formatPrice(totalPrice + shippingFee)} {currency}</span>
-                                </div>
-                            </div> */}
-
-                            {products.length > 0 && <OrderSummary onClose={onClose}/>}
-
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+      {/* Drawer */}
+      <aside className="absolute right-0 top-0 h-full bg-white shadow-2xl w-[90%] max-w-[420px] md:w-[480px] flex flex-col">
+        <Header onClose={onClose} />
+        <OrderSummary onClose={onClose} />
+      </aside>
+    </div>
+  );
 };
 
-export default CartModal;
+const Header = ({ onClose }) => (
+  <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-4 py-4">
+    <h2 className="text-lg font-semibold">Your Cart</h2>
+    <button onClick={onClose} aria-label="Close" className="text-gray-700 hover:text-black">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </button>
+  </div>
+);
 
+export default CartModal;

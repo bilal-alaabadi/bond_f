@@ -1,16 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// استعادة الحالة من localStorage إن وجدت
 const loadState = () => {
   try {
-    const serializedState = localStorage.getItem('cartState');
-    if (serializedState === null) {
-      return undefined;
-    }
-    return JSON.parse(serializedState);
-  } catch (err) {
-    return undefined;
-  }
+    const s = localStorage.getItem('cartState');
+    return s ? JSON.parse(s) : undefined;
+  } catch { return undefined; }
 };
 
 const initialState = loadState() || {
@@ -26,49 +20,35 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action) => {
-      const existingProduct = state.products.find(
-        (product) => product._id === action.payload._id
-      );
-
-      if (existingProduct) {
-        existingProduct.quantity += 1;
+      const qtyToAdd = Math.max(1, Number.isFinite(+action.payload?.quantity) ? Math.floor(+action.payload.quantity) : 1);
+      const existing = state.products.find(p => p._id === action.payload._id);
+      if (existing) {
+        existing.quantity += qtyToAdd;     // <-- increment by selected qty
       } else {
-        state.products.push({ 
-          ...action.payload, 
-          quantity: 1,
-          // نسخ بيانات التخصيص إذا وجدت
-          ...(action.payload.customization && { 
-            customization: action.payload.customization 
-          })
+        state.products.push({
+          ...action.payload,
+          quantity: qtyToAdd,              // <-- add with selected qty
+          ...(action.payload.customization && { customization: action.payload.customization })
         });
       }
-
       state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
-      
-      // حفظ الحالة في localStorage
+      state.totalPrice   = setTotalPrice(state);
       saveState(state);
     },
     updateQuantity: (state, action) => {
-      const product = state.products.find(p => p._id === action.payload.id);
-      if (product) {
-        if (action.payload.type === 'increment') {
-          product.quantity += 1;
-        } else if (action.payload.type === 'decrement' && product.quantity > 1) {
-          product.quantity -= 1;
-        }
+      const p = state.products.find(x => x._id === action.payload.id);
+      if (p) {
+        if (action.payload.type === 'increment') p.quantity += 1;
+        if (action.payload.type === 'decrement' && p.quantity > 1) p.quantity -= 1;
       }
-
       state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
+      state.totalPrice   = setTotalPrice(state);
       saveState(state);
     },
     removeFromCart: (state, action) => {
-      state.products = state.products.filter(
-        (product) => product._id !== action.payload.id
-      );
+      state.products = state.products.filter(p => p._id !== action.payload.id);
       state.selectedItems = setSelectedItems(state);
-      state.totalPrice = setTotalPrice(state);
+      state.totalPrice   = setTotalPrice(state);
       saveState(state);
     },
     clearCart: (state) => {
@@ -82,39 +62,21 @@ const cartSlice = createSlice({
       state.shippingFee = action.payload === 'الإمارات' ? 4 : 2;
       saveState(state);
     },
-    // إضافة رديف لتحميل الحالة من السيرفر إذا لزم الأمر
-    loadCart: (state, action) => {
-      return action.payload;
-    }
+    loadCart: (state, action) => action.payload,
   },
 });
 
-// دالة مساعدة لحفظ الحالة في localStorage
 const saveState = (state) => {
-  try {
-    const serializedState = JSON.stringify(state);
-    localStorage.setItem('cartState', serializedState);
-  } catch (err) {
-    console.error("Failed to save cart state:", err);
-  }
+  try { localStorage.setItem('cartState', JSON.stringify(state)); } catch {}
 };
 
 export const setSelectedItems = (state) =>
-  state.products.reduce((total, product) => total + product.quantity, 0);
+  state.products.reduce((t, p) => t + p.quantity, 0);
 
 export const setTotalPrice = (state) =>
-  state.products.reduce(
-    (total, product) => total + (product.quantity * product.price),
-    0
-  );
+  state.products.reduce((t, p) => t + p.quantity * p.price, 0);
 
-export const { 
-  addToCart, 
-  updateQuantity, 
-  removeFromCart, 
-  clearCart, 
-  setCountry,
-  loadCart
-} = cartSlice.actions;
+export const { addToCart, updateQuantity, removeFromCart, clearCart, setCountry, loadCart } =
+  cartSlice.actions;
 
 export default cartSlice.reducer;

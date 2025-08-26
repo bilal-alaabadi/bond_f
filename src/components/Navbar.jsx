@@ -1,221 +1,301 @@
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import CartModal from '../pages/shop/CartModal';
+// src/components/Navbar.jsx
+import React, { useState } from "react";
+import { NavLink, Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  Search,
+  ShoppingBag,
+  Menu,
+  X as CloseIcon,
+  User,
+} from "lucide-react";
+import CartModal from "../pages/shop/CartModal";
 import avatarImg from "../assets/avatar.png";
-import { useLogoutUserMutation } from '../redux/features/auth/authApi';
-import { logout } from '../redux/features/auth/authSlice';
 import logo from "../assets/LOGO_Bond Var1.png";
+import { useLogoutUserMutation } from "../redux/features/auth/authApi";
+import { logout } from "../redux/features/auth/authSlice";
 
 const Navbar = () => {
-    // State management
-    const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isDropDownOpen, setIsDropDownOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
-    // Redux and navigation
-    const products = useSelector((state) => state.cart.products);
-    const { user } = useSelector((state) => state.auth);
-    const dispatch = useDispatch();
-    const [logoutUser] = useLogoutUserMutation();
-    const navigate = useNavigate();
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isDropOpen, setIsDropOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Menu configurations
-    const adminMenus = [
-        { label: "Dashboard", path: "/dashboard/admin" },
-        { label: "Manage Products", path: "/dashboard/manage-products" },
-        { label: "Add Product", path: "/dashboard/add-product" },
-    ];
+  const { user } = useSelector((s) => s.auth);
+  const products = useSelector((s) => s.cart.products);
+  const totalCartItems = products.reduce((t, i) => t + i.quantity, 0);
 
-    const userMenus = [
-        { label: "Dashboard", path: "/dashboard" },
-    ];
+  const [logoutUser] = useLogoutUserMutation();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-    const dropdownMenus = user?.role === 'admin' ? adminMenus : userMenus;
-    const totalCartItems = products.reduce((total, item) => total + item.quantity, 0);
+  const handleLogout = async () => {
+    try {
+      await logoutUser().unwrap();
+      dispatch(logout());
+      setMobileOpen(false);
+      navigate("/");
+    } catch (e) {
+      console.error("Logout failed", e);
+    }
+  };
 
-    // Handler functions
-    const handleCartToggle = () => setIsCartOpen(!isCartOpen);
-    const handleDropDownToggle = () => setIsDropDownOpen(!isDropDownOpen);
-    const handleMobileMenuToggle = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-    const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  return (
+    <header className="fixed inset-x-0 top-0 z-50 bg-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-[72px] items-center">
+          {/* زر القائمة في الموبايل */}
+          <button
+            onClick={() => setMobileOpen((p) => !p)}
+            className="md:hidden mr-3 text-[#0E161B] hover:opacity-70 transition"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileOpen ? (
+              <CloseIcon size={26} strokeWidth={1.5} />
+            ) : (
+              <Menu size={26} strokeWidth={1.5} />
+            )}
+          </button>
 
-    const handleLogout = async () => {
-        try {
-            await logoutUser().unwrap();
-            dispatch(logout());
-            navigate('/');
-        } catch (error) {
-            console.error("Logout failed:", error);
-        }
-    };
+          {/* روابط الديسكتوب */}
+          <nav className="flex-1">
+            <ul className="hidden md:flex items-center gap-10">
+              <NavItem to="/" label="HOME" />
+              <NavItem to="/shop" label="PRODUCTS" />
+              <NavItem to="/about" label="ABOUT" />
+            </ul>
+          </nav>
 
-    return (
-        <header className="fixed w-full bg-white shadow-sm z-50">
-            <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-24 relative">
-                    
-                    {/* Mobile menu button */}
-                    <button
-                        onClick={handleMobileMenuToggle}
-                        className="sm:hidden text-gray-700 hover:text-[#d3ae27]"
-                    >
-                        <i className="ri-menu-line text-2xl"></i>
-                    </button>
+          {/* الشعار */}
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <Link to="/" aria-label="Home">
+              <img
+                src={logo}
+                alt="BOND"
+                className="h-10 w-auto object-contain select-none"
+                draggable="false"
+              />
+            </Link>
+          </div>
 
-                    {/* Desktop Navigation Links */}
-                    <nav className="hidden sm:flex space-x-8 flex-1">
-                        <div className="flex items-center space-x-8">
-                            <NavLink to="/" text="Home" />
-                            <NavLink to="/shop" text="Products" />
-                            <NavLink to="/about" text="About" />
-                        </div>
-                    </nav>
+          {/* أيقونات اليمين */}
+          <div className="ml-auto flex items-center gap-6 text-[#0E161B]">
+            <Link to="/search" aria-label="Search" className="hover:opacity-70 transition">
+              <Search size={22} strokeWidth={1.5} />
+            </Link>
 
-                    {/* Logo - Centered */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2">
-                        <Link to="/">
-                            <img 
-                                src={logo} 
-                                alt="Company Logo" 
-                                className="h-20 w-auto object-contain"
-                                loading="lazy"
-                            />
-                        </Link>
+            {/* 👤 يظهر فقط على md↑ */}
+            <div className="hidden md:block">
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropOpen((p) => !p)}
+                    className="rounded-full"
+                    aria-label="User Menu"
+                  >
+                    <img
+                      src={user?.profileImage || avatarImg}
+                      alt="Avatar"
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  </button>
+
+                  {isDropOpen && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                      {user?.role === "admin" ? (
+                        <>
+                          <DropItem to="/dashboard/admin">Dashboard</DropItem>
+                          <DropItem to="/dashboard/manage-products">
+                            Manage Products
+                          </DropItem>
+                          <DropItem to="/dashboard/add-product">
+                            Add Product
+                          </DropItem>
+                        </>
+                      ) : (
+                        <DropItem to="/dashboard">Dashboard</DropItem>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
                     </div>
-
-                    {/* Right Side Icons */}
-                    <div className="flex items-center space-x-6 flex-1 justify-end">
-                        <NavIcon 
-                            icon="ri-search-line" 
-                            to="/search" 
-                            ariaLabel="Search"
-                        />
-                        
-                        <button 
-                            onClick={handleCartToggle}
-                            className="relative hover:text-[#d3ae27]"
-                            aria-label="Cart"
-                        >
-                            <i className="ri-shopping-bag-line text-xl"></i>
-                            {totalCartItems > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-[#d3ae27] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                    {totalCartItems}
-                                </span>
-                            )}
-                        </button>
-
-                        {user ? (
-                            <UserDropdown 
-                                user={user} 
-                                avatarImg={avatarImg}
-                                isOpen={isDropDownOpen}
-                                menus={dropdownMenus}
-                                onToggle={handleDropDownToggle}
-                                onLogout={handleLogout}
-                            />
-                        ) : (
-                            <NavIcon 
-                                icon="ri-user-line" 
-                                to="/login" 
-                                ariaLabel="Login"
-                            />
-                        )}
-                    </div>
+                  )}
                 </div>
+              ) : (
+                <Link to="/login" aria-label="Login" className="hover:opacity-70 transition">
+                  <User size={22} strokeWidth={1.5} />
+                </Link>
+              )}
             </div>
 
-            {/* Mobile Menu */}
-            {isMobileMenuOpen && (
-                <MobileMenu onClose={closeMobileMenu} user={user} />
-            )}
+            {/* 🛍️ السلة */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative hover:opacity-70 transition"
+              aria-label="Cart"
+            >
+              <ShoppingBag size={22} strokeWidth={1.5} />
+              {totalCartItems > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#0E161B] px-1 text-[10px] font-medium text-white">
+                  {totalCartItems}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Cart Modal */}
-            {isCartOpen && (
-                <CartModal 
-                    products={products} 
-                    isOpen={isCartOpen} 
-                    onClose={handleCartToggle} 
-                />
+      {/* قائمة الموبايل */}
+      <div
+        className={`md:hidden fixed inset-y-0 left-0 z-40 w-[78%] max-w-xs transform bg-white shadow-xl transition-transform duration-300 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="pt-[72px] flex flex-col h-full">
+          {/* روابط علوية */}
+          <ul className="py-2 flex-1">
+            <MobileItem to="/" onClick={() => setMobileOpen(false)}>
+              Home
+            </MobileItem>
+            <MobileItem to="/shop" onClick={() => setMobileOpen(false)}>
+              Products
+            </MobileItem>
+            <MobileItem to="/about" onClick={() => setMobileOpen(false)}>
+              About
+            </MobileItem>
+          </ul>
+
+          {/* أسفل القائمة */}
+          <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+            {!user ? (
+              // غير مسجل: زر الدخول فقط
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 text-sm text-gray-700"
+              >
+                <User size={18} strokeWidth={1.5} />
+                <span>Login</span>
+              </Link>
+            ) : (
+              // مسجل: صورة البروفايل + روابط الحساب + تسجيل الخروج
+              <>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user?.profileImage || avatarImg}
+                    alt="Avatar"
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                  <span className="text-sm font-medium text-gray-800">
+                    {user?.username || "My Account"}
+                  </span>
+                </div>
+
+                {user?.role === "admin" ? (
+                  <>
+                    <MobileBottomLink to="/dashboard/admin" onClick={() => setMobileOpen(false)}>
+                      Dashboard
+                    </MobileBottomLink>
+
+                  </>
+                ) : (
+                  <MobileBottomLink to="/dashboard" onClick={() => setMobileOpen(false)}>
+                    Dashboard
+                  </MobileBottomLink>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm text-gray-700"
+                >
+                  <User size={18} strokeWidth={1.5} />
+                  <span>Logout</span>
+                </button>
+              </>
             )}
-        </header>
-    );
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-30 bg-black/20 md:hidden"
+        />
+      )}
+
+      {/* مودال السلة */}
+      {isCartOpen && (
+        <CartModal
+          products={products}
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+        />
+      )}
+    </header>
+  );
 };
 
-// Reusable components
-const NavLink = ({ to, text }) => (
-    <Link 
-        to={to} 
-        className="text-lg font-medium hover:text-[#d3ae27] transition-colors duration-300"
+/* عناصر الروابط */
+const NavItem = ({ to, label }) => (
+  <li>
+    <NavLink
+      to={to}
+      end={to === "/"}
+      className={({ isActive }) =>
+        [
+          "text-[14px] tracking-[0.16em] uppercase",
+          "text-[#0E161B]",
+          isActive
+            ? "font-semibold underline underline-offset-[10px] decoration-2"
+            : "hover:opacity-70",
+        ].join(" ")
+      }
     >
-        {text}
-    </Link>
+      {label}
+    </NavLink>
+  </li>
 );
 
-const NavIcon = ({ icon, to, ariaLabel }) => (
-    <Link 
-        to={to} 
-        className="hover:text-[#d3ae27] transition-colors duration-300"
-        aria-label={ariaLabel}
+const MobileItem = ({ to, children, onClick }) => (
+  <li>
+    <NavLink
+      to={to}
+      end={to === "/"}
+      onClick={onClick}
+      className={({ isActive }) =>
+        [
+          "block px-6 py-4 text-lg",
+          "text-[#0E161B]",
+          isActive ? "bg-gray-50 font-semibold" : "hover:bg-gray-50",
+        ].join(" ")
+      }
     >
-        <i className={`${icon} text-xl`}></i>
-    </Link>
+      {children}
+    </NavLink>
+  </li>
 );
 
-const UserDropdown = ({ user, avatarImg, isOpen, menus, onToggle, onLogout }) => (
-    <div className="relative">
-        <button onClick={onToggle} aria-label="User menu">
-            <img
-                src={user?.profileImage || avatarImg}
-                alt="User avatar"
-                className="w-8 h-8 rounded-full cursor-pointer"
-            />
-        </button>
-        
-        {isOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                {menus.map((menu, index) => (
-                    <Link
-                        key={index}
-                        to={menu.path}
-                        onClick={() => onToggle(false)}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                        {menu.label}
-                    </Link>
-                ))}
-                <button
-                    onClick={onLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                    Logout
-                </button>
-            </div>
-        )}
-    </div>
+const MobileBottomLink = ({ to, children, onClick }) => (
+  <NavLink
+    to={to}
+    onClick={onClick}
+    className="block px-1 py-2 text-sm text-gray-700 hover:underline"
+  >
+    {children}
+  </NavLink>
 );
 
-const MobileMenu = ({ onClose, user }) => (
-    <div className="sm:hidden absolute top-24 left-0 right-0 bg-white shadow-lg z-40">
-        <div className="px-2 pt-2 pb-4 space-y-2">
-            <MobileLink to="/" text="Home" onClick={onClose} />
-            <MobileLink to="/shop" text="Products" onClick={onClose} />
-            <MobileLink to="/about" text="About" onClick={onClose} />
-            <MobileLink to="/search" text="Search" icon="ri-search-line" onClick={onClose} />
-            {!user && <MobileLink to="/login" text="Login" icon="ri-user-line" onClick={onClose} />}
-        </div>
-    </div>
-);
-
-const MobileLink = ({ to, text, icon, onClick }) => (
-    <Link
-        to={to}
-        onClick={onClick}
-        className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-    >
-        {icon && <i className={`${icon} mr-2`}></i>}
-        {text}
-    </Link>
+const DropItem = ({ to, children }) => (
+  <NavLink
+    to={to}
+    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+  >
+    {children}
+  </NavLink>
 );
 
 export default Navbar;

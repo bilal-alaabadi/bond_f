@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// ========================= SingleProduct.jsx (EN only) =========================
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFetchProductByIdQuery } from '../../../redux/features/products/productsApi';
@@ -6,172 +7,182 @@ import { addToCart } from '../../../redux/features/cart/cartSlice';
 import ReviewsCard from '../reviews/ReviewsCard';
 
 const SingleProduct = () => {
-    const { id } = useParams();
-    const dispatch = useDispatch();
-    const { data, error, isLoading } = useFetchProductByIdQuery(id); 
-    const { country } = useSelector((state) => state.cart);
-    const singleProduct = data;
-    const productReviews = data?.reviews || [];
+  const { id } = useParams();
+  const dispatch = useDispatch();
+  const { data, error, isLoading } = useFetchProductByIdQuery(id);
+  const { country } = useSelector((s) => s.cart);
 
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [imageScale, setImageScale] = useState(1);
-    const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageScale, setImageScale] = useState(1);
+  const [qty, setQty] = useState(1);           // <-- quantity field (rectangle)
+  const [adding, setAdding] = useState(false);
 
-    // Currency and exchange rate
-    const currency = country === 'الإمارات' ? 'د.إ' : 'ر.ع.';
-    const exchangeRate = country === 'الإمارات' ? 9.5 : 1;
+  const product = data || {};
+  const images = Array.isArray(product.image) ? product.image : product.image ? [product.image] : [];
+  const reviews = product?.reviews || [];
 
-    useEffect(() => {
-        setImageScale(1.05);
-        const timer = setTimeout(() => setImageScale(1), 300);
-        return () => clearTimeout(timer);
-    }, []);
+  const currency = country === 'الإمارات' ? 'AED' : 'OMR';
+  const rate = country === 'الإمارات' ? 9.5 : 1;
 
-    const handleAddToCart = (product) => {
-        setIsAddingToCart(true);
-        
-        const productToAdd = {
-            ...product,
-            price: product.regularPrice || product.price || 0
-        };
+  const outOfStock = product?.inStock === false || product?.stock === 0;
 
-        dispatch(addToCart(productToAdd));
+  useEffect(() => {
+    setImageScale(1.05);
+    const t = setTimeout(() => setImageScale(1), 250);
+    return () => clearTimeout(t);
+  }, [currentImageIndex]);
 
-        setTimeout(() => {
-            setIsAddingToCart(false);
-        }, 1000);
-    };
+  const basePrice = useMemo(() => {
+    if (typeof product?.price === 'object' && product?.price !== null) {
+      const vals = Object.values(product.price).filter((v) => typeof v === 'number');
+      if (vals.length) return Math.min(...vals);
+    }
+    return product?.regularPrice || product?.price || 0;
+  }, [product]);
 
-    const nextImage = () => {
-        setCurrentImageIndex((prevIndex) =>
-            prevIndex === singleProduct.image.length - 1 ? 0 : prevIndex + 1
-        );
-    };
+  const price = (basePrice || 0) * rate;
+  const oldPrice = product?.oldPrice ? product.oldPrice * rate : null;
+  const discountPct = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
 
-    const prevImage = () => {
-        setCurrentImageIndex((prevIndex) =>
-            prevIndex === 0 ? singleProduct.image.length - 1 : prevIndex - 1
-        );
-    };
-
-    if (isLoading) return <p>جاري التحميل...</p>;
-    if (error) return <p>حدث خطأ أثناء تحميل تفاصيل المنتج.</p>;
-
-    // Calculate prices
-    const price = (singleProduct.regularPrice || singleProduct.price || 0) * exchangeRate;
-    const oldPrice = singleProduct.oldPrice ? singleProduct.oldPrice * exchangeRate : null;
-    const discountPercentage = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
-
-    return (
-        <>
-            <section className='section__container bg-[#e2e5e5]'>
-                <h2 className='section__header capitalize'>صفحة المنتج الفردي</h2>
-                <div className='section__subheader space-x-2'>
-                    <span className='hover:text-[#4E5A3F]'><Link to="/">الرئيسية</Link></span>
-                    <i className="ri-arrow-right-s-line"></i>
-                    <span className='hover:text-[#4E5A3F]'><Link to="/shop">المتجر</Link></span>
-                    <i className="ri-arrow-right-s-line"></i>
-                    <span className='hover:text-[#4E5A3F]'>{singleProduct.name}</span>
-                </div>
-            </section>
-
-            <section className='section__container mt-8' dir='rtl'>
-                <div className='flex flex-col items-center md:flex-row gap-8'>
-                    {/* Product Image */}
-                    <div className='md:w-1/2 w-full relative'>
-                        {singleProduct.oldPrice && (
-                            <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
-                                خصم {discountPercentage}%
-                            </div>
-                        )}
-
-                        {singleProduct.image && singleProduct.image.length > 0 ? (
-                            <>
-                                <div className="overflow-hidden rounded-md">
-                                    <img
-                                        src={singleProduct.image[currentImageIndex]}
-                                        alt={singleProduct.name}
-                                        className={`w-full h-auto transition-transform duration-300`}
-                                        style={{ transform: `scale(${imageScale})` }}
-                                        onError={(e) => {
-                                            e.target.src = "https://via.placeholder.com/500";
-                                            e.target.alt = "Image not found";
-                                        }}
-                                    />
-                                </div>
-                                {singleProduct.image.length > 1 && (
-                                    <>
-                                        <button
-                                            onClick={prevImage}
-                                            className='absolute left-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full'
-                                        >
-                                            <i className="ri-arrow-left-s-line"></i>
-                                        </button>
-                                        <button
-                                            onClick={nextImage}
-                                            className='absolute right-0 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full'
-                                        >
-                                            <i className="ri-arrow-right-s-line"></i>
-                                        </button>
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <p className="text-red-600">لا توجد صور متاحة لهذا المنتج.</p>
-                        )}
-                    </div>
-
-                    <div className='md:w-1/2 w-full'>
-                        <h3 className='text-2xl font-semibold mb-4'>{singleProduct.name}</h3>
-                        
-                        {/* Price */}
-                        <div className='text-xl text-[#3D4B2E] mb-4 space-x-1'>
-                            {price.toFixed(2)} {currency}
-                            {oldPrice && (
-                                <s className="text-gray-500 text-sm ml-2">{oldPrice.toFixed(2)} {currency}</s>
-                            )}
-                        </div>
-
-                        {/* Product Info */}
-                        <div className='flex flex-col space-y-2'>
-                            <p className="text-gray-500 mb-4 text-lg font-medium leading-relaxed">
-                                <span className="text-gray-800 font-bold block">الفئة:</span> 
-                                <span className="text-gray-600">{singleProduct.category}</span>
-                            </p>
-                        </div>
-                        <p className="text-gray-500 mb-4 text-lg font-medium leading-relaxed">
-                            <span className="text-gray-800 font-bold block">الوصف:</span> 
-                            <span className="text-gray-600">{singleProduct.description}</span>
-                        </p>
-
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(singleProduct);
-                            }}
-                            className={`mt-6 px-6 py-3 bg-[#3D4B2E] text-white rounded-md hover:bg-[#4E5A3F] transition-all duration-200 relative overflow-hidden ${
-                                isAddingToCart ? 'bg-green-600' : ''
-                            }`}
-                        >
-                            {isAddingToCart ? (
-                                <>
-                                    <span className="animate-bounce">تمت الإضافة!</span>
-                                    <span className="absolute inset-0 bg-green-600 opacity-0 animate-fade"></span>
-                                </>
-                            ) : (
-                                'إضافة إلى السلة'
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* Reviews */}
-            <section className='section__container mt-8' dir='rtl'>
-                <ReviewsCard productReviews={productReviews} />
-            </section>
-        </>
+  const handleAdd = () => {
+    if (outOfStock) return;
+    const safeQty = Number.isFinite(+qty) && +qty > 0 ? Math.floor(+qty) : 1;
+    setAdding(true);
+    // add the chosen quantity
+    dispatch(
+      addToCart({
+        ...product,
+        price: basePrice,     // keep base currency in store
+        quantity: safeQty,    // pass selected quantity to cart
+      })
     );
+    setTimeout(() => setAdding(false), 800);
+  };
+
+  if (isLoading) return <p className="section__container">Loading…</p>;
+  if (error) return <p className="section__container text-red-600">Failed to load product.</p>;
+
+  return (
+    <>
+      {/* Breadcrumb */}
+      <section className="section__container ">
+
+      </section>
+
+      {/* Content */}
+      <section className="section__container mt-8">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Images */}
+          <div className="md:w-1/2 w-full">
+            <div className="relative overflow-hidden rounded-md">
+              {oldPrice && (
+                <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  SALE {discountPct}%
+                </div>
+              )}
+              <img
+                src={images[currentImageIndex] || 'https://via.placeholder.com/800x800?text=No+Image'}
+                alt={product?.name || 'product'}
+                className="w-full h-auto transition-transform duration-300"
+                style={{ transform: `scale(${imageScale})` }}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/800x800?text=Image'; }}
+              />
+            </div>
+
+            {/* Thumbnails — show ALL images */}
+            {images.length > 0 && (
+              <div className="mt-4 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-2">
+                {images.map((src, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`border rounded overflow-hidden aspect-square ${idx === currentImageIndex ? 'ring-2 ring-[#3D4B2E]' : 'hover:opacity-80'}`}
+                    title={`Image ${idx + 1}`}
+                  >
+                    <img
+                      src={src}
+                      alt={`thumb-${idx}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Image'; }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="md:w-1/2 w-full">
+            <h1 className="text-2xl font-semibold mb-2">{product?.name}</h1>
+
+            {/* Price */}
+            <div className="flex items-baseline gap-3 mb-5">
+              <span className="text-xl text-[#3D4B2E] font-semibold">
+                {price.toFixed(2)} {currency}
+              </span>
+              {oldPrice && <s className="text-gray-500">{oldPrice.toFixed(2)} {currency}</s>}
+            </div>
+
+            {/* Meta */}
+            <div className="mb-3">
+              <span className="block font-bold text-gray-800">Category</span>
+              <span className="text-gray-600">{product?.category || '—'}</span>
+            </div>
+
+            <div className="mb-6">
+              <span className="block font-bold text-gray-800">Description</span>
+              <p className="text-gray-700 leading-relaxed">{product?.description || '—'}</p>
+            </div>
+
+            {/* Quantity rectangle (connected to cart add) */}
+           {/* Quantity rectangle */}
+<div className="mb-4">
+  <span className="block font-bold text-gray-800 mb-2">Quantity</span>
+  <div className="flex items-center border rounded-md w-32 h-11 overflow-hidden">
+    <button
+      type="button"
+      onClick={() => setQty((q) => Math.max(1, Number(q) - 1))}
+      className="flex-1 h-full grid place-items-center text-lg hover:bg-gray-100"
+    >
+      −
+    </button>
+    <div className="w-10 text-center text-base select-none">{qty}</div>
+    <button
+      type="button"
+      onClick={() => setQty((q) => Number(q) + 1)}
+      className="flex-1 h-full grid place-items-center text-lg hover:bg-gray-100"
+    >
+      +
+    </button>
+  </div>
+</div>
+
+
+            {/* Single action — Add to Cart only */}
+            {outOfStock ? (
+              <button type="button" disabled className="w-full h-12 mt-2 rounded-md bg-gray-200 text-gray-600 cursor-not-allowed">
+                Sold Out
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAdd}
+                className={`w-full h-12 mt-2 rounded-md text-white transition-all ${adding ? 'bg-green-600' : 'bg-[#7A2432] '}`}
+              >
+                {adding ? 'Added!' : 'Add to Cart'}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section className="section__container mt-8">
+        <ReviewsCard productReviews={reviews} />
+      </section>
+    </>
+  );
 };
 
 export default SingleProduct;

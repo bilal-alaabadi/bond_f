@@ -1,115 +1,105 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import RatingStars from '../../components/RatingStars';
-import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../../redux/features/cart/cartSlice';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart } from "../../redux/features/cart/cartSlice";
 
 const ProductCards = ({ products }) => {
-    const dispatch = useDispatch();
-    const [addedItems, setAddedItems] = useState({});
-    const { country } = useSelector((state) => state.cart);
-    
-    // Currency and exchange rate
-    const currency = country === 'الإمارات' ? 'د.إ' : 'ر.ع.';
-    const exchangeRate = country === 'الإمارات' ? 9.5 : 1;
+  const dispatch = useDispatch();
+  const [addedItems, setAddedItems] = useState({});
+  const { country } = useSelector((state) => state.cart);
 
-    const getProductPrice = (product) => {
-        if (!product) return 0;
-        
-        if (typeof product.price === 'object' && product.price !== null) {
-            return (product.price['500 جرام'] || 0) * exchangeRate;
-        }
-        
-        return (product.regularPrice || product.price || 0) * exchangeRate;
-    };
+  const currency = country === "الإمارات" ? "AED" : "OMR";
+  const rate = country === "الإمارات" ? 9.5 : 1;
 
-    const handleAddToCart = (productId, product) => {
-        const originalPrice = product.regularPrice || product.price || 0;
-        
-        dispatch(addToCart({
-            ...product,
-            price: originalPrice
-        }));
+  const priceFor = (p) => {
+    if (!p) return 0;
+    if (typeof p.price === "object" && p.price !== null) {
+      return (p.price["500 جرام"] || 0) * rate;
+    }
+    return (p.regularPrice || p.price || 0) * rate;
+  };
 
-        setAddedItems(prev => ({ ...prev, [productId]: true }));
-        setTimeout(() => {
-            setAddedItems(prev => ({ ...prev, [productId]: false }));
-        }, 1000);
-    };
+  const handleAdd = (product) => {
+    const original = product.regularPrice || product.price || 0;
+    dispatch(addToCart({ ...product, price: original }));
+    setAddedItems((s) => ({ ...s, [product._id]: true }));
+    setTimeout(() => setAddedItems((s) => ({ ...s, [product._id]: false })), 900);
+  };
 
-    const renderPrice = (product) => {
-        const price = getProductPrice(product);
-        const oldPrice = product.oldPrice ? product.oldPrice * exchangeRate : null;
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {products.map((p) => {
+        const price = priceFor(p);
+        const old = p.oldPrice ? p.oldPrice * rate : null;
+        const outOfStock = p?.stock === 0 || p?.inStock === false || p?.available === false;
 
         return (
-            <div className="space-y-1">
-                <div className="font-medium text-lg">
-                    {price.toFixed(2)} {currency}
+          <div key={p._id} className="relative flex h-full flex-col overflow-hidden rounded-md bg-white">
+            {outOfStock && (
+              <div className="absolute left-5 top-3 z-10 rounded-md bg-white px-3 py-1 text-xs font-semibold shadow-sm">
+                Sold out
+              </div>
+            )}
+
+            {/* Bigger images and closer texts */}
+            <Link to={`/shop/${p._id}`} className="block">
+              <div className="w-full h-72 bg-white flex items-center justify-center">
+                <img
+                  src={p.image?.[0] || "https://via.placeholder.com/600"}
+                  alt={p.name || "Product image"}
+                  className="max-h-full max-w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://via.placeholder.com/600";
+                  }}
+                />
+              </div>
+            </Link>
+
+            <div className="flex flex-1 flex-col px-3 pb-4">
+              <h4 className="mt-2 text-center text-[13px] font-semibold uppercase leading-snug tracking-wide text-gray-900 line-clamp-2">
+                {p.name || "Product Name"}
+              </h4>
+
+              <p className="mt-1 text-center text-[11px] uppercase tracking-widest text-gray-500">
+                {p.category || "Category"}
+              </p>
+
+              <div className="mt-2 text-center">
+                <div className="text-[18px] font-semibold text-gray-900">
+                  {price.toFixed(2)} {currency}
                 </div>
-                {oldPrice && (
-                    <s className="text-gray-500 text-sm">{oldPrice.toFixed(2)} {currency}</s>
+                {old && (
+                  <div className="text-xs text-gray-500 line-through">
+                    {old.toFixed(2)} {currency}
+                  </div>
                 )}
-            </div>
-        );
-    };
+              </div>
 
-    return (
-        <div className='grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
-            {products.map((product) => (
-                <div 
-                    key={product._id} 
-                    className='product__card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative flex flex-col h-full'
+              {outOfStock ? (
+                <button
+                  disabled
+                  className="mt-3 w-full rounded-md border-2 border-gray-300 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed"
                 >
-                    {product.oldPrice && (
-                        <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
-                            خصم {Math.round(((product.oldPrice - (product.regularPrice || product.price)) / product.oldPrice) * 100)}%
-                        </div>
-                    )}
-
-                    <div className='relative flex-grow'>
-                        <Link to={`/shop/${product._id}`} className="block h-full">
-                            <div className="h-64 w-full overflow-hidden">
-                                <img
-                                    src={product.image?.[0] || "https://via.placeholder.com/300"}
-                                    alt={product.name || "صورة المنتج"}
-                                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                                    onError={(e) => {
-                                        e.target.src = "https://via.placeholder.com/300";
-                                        e.target.alt = "صورة المنتج غير متوفرة";
-                                    }}
-                                />
-                            </div>
-                        </Link>
-
-                        <div className='absolute top-3 right-3'>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    handleAddToCart(product._id, product);
-                                }}
-                                className={`p-2 text-white rounded-full shadow-md transition-all duration-300 ${
-                                    addedItems[product._id] ? 'bg-green-500' : 'bg-[#3D4B2E] hover:bg-[#4E5A3F]'
-                                }`}
-                            >
-                                {addedItems[product._id] ? (
-                                    <i className="ri-check-line"></i>
-                                ) : (
-                                    <i className="ri-shopping-cart-2-line"></i>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className='p-4'>
-                        <h4 className="text-lg font-semibold mb-1">{product.name || "اسم المنتج"}</h4>
-                        <p className="text-gray-500 text-sm mb-3">{product.category || "فئة غير محددة"}</p>
-                        
-                        {renderPrice(product)}
-                    </div>
-                </div>
-            ))}
-        </div> 
-    );
+                  Sold out
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleAdd(p)}
+                  className={`mt-3 w-full rounded-md border-2 px-4 py-3 text-sm font-medium transition ${
+                    addedItems[p._id]
+                      ? "bg-green-500 text-white border-green-500"
+                      : "border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white"
+                  }`}
+                >
+                  {addedItems[p._id] ? "Added" : "Add to cart"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 export default ProductCards;
