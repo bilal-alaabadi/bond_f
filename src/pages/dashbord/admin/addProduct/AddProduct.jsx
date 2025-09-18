@@ -1,4 +1,4 @@
-// src/pages/dashboard/products/addProduct/AddProduct.jsx
+// src/pages/dashbord/admin/addProduct/AddProduct.jsx
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import TextInput from './TextInput';
@@ -50,13 +50,20 @@ const AddProduct = () => {
   const { user } = useSelector((state) => state.auth);
 
   const [product, setProduct] = useState({
+    // الأساسية (للخادم)
     name: '',
+    description: '',
     category: '',
     size: '',
     price: '',
-    description: '',
     oldPrice: '',
-    homeIndex: '', // تحديد موضع المنتج في الرئيسية
+    homeIndex: '',
+
+    // ثنائي اللغة
+    name_en: '',
+    name_ar: '',
+    description_en: '',
+    description_ar: '',
   });
 
   const [image, setImage] = useState([]);
@@ -81,11 +88,14 @@ const AddProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // نطلب العربية والإنجليزية للاسم والوصف + الحقول الأساسية
     const requiredFields = {
-      'اسم المنتج': product.name,
+      'اسم المنتج (EN - name أو name_en)': product.name || product.name_en,
+      'اسم المنتج (AR - name_ar)': product.name_ar,
+      'الوصف (EN - description أو description_en)': product.description || product.description_en,
+      'الوصف (AR - description_ar)': product.description_ar,
       'تصنيف المنتج': product.category,
       'السعر': product.price,
-      'الوصف': product.description,
       'الصور': image.length > 0,
     };
 
@@ -104,16 +114,28 @@ const AddProduct = () => {
     }
 
     try {
+      // نضمن تعبئة الحقول الأساسية EN إن تُركت فارغة
+      const baseName = product.name || product.name_en;
+      const baseDesc = product.description || product.description_en;
+
       const payload = {
-        ...product,
+        name: baseName,
+        description: baseDesc,
+        category: product.category,
+        size: product.size || undefined,
+        oldPrice: product.oldPrice || undefined,
+        price: Number(product.price),
         image,
         author: user?._id,
+        // حقول ثنائية اللغة
+        name_en: product.name_en || baseName,
+        name_ar: product.name_ar,
+        description_en: product.description_en || baseDesc,
+        description_ar: product.description_ar,
       };
-      // تحويل homeIndex إلى Number إن تم اختياره
-      if (payload.homeIndex !== '') {
-        payload.homeIndex = Number(payload.homeIndex);
-      } else {
-        delete payload.homeIndex;
+
+      if (product.homeIndex !== '') {
+        payload.homeIndex = Number(product.homeIndex);
       }
 
       await addProduct(payload).unwrap();
@@ -121,12 +143,16 @@ const AddProduct = () => {
       alert('تمت إضافة المنتج بنجاح');
       setProduct({
         name: '',
+        description: '',
         category: '',
         size: '',
-        oldPrice: '',
         price: '',
-        description: '',
+        oldPrice: '',
         homeIndex: '',
+        name_en: '',
+        name_ar: '',
+        description_en: '',
+        description_ar: '',
       });
       setImage([]);
       navigate('/shop');
@@ -140,18 +166,29 @@ const AddProduct = () => {
     sizeOptionsByCategory[product.category] || [{ label: '—', value: '' }];
 
   return (
-    <div className="container mx-auto mt-8">
+    <div className="container mx-auto mt-8" dir="rtl">
       <h2 className="text-2xl font-bold mb-6">إضافة منتج جديد</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ==== الاسم (إنجليزي/عربي) ==== */}
         <TextInput
-          label="اسم المنتج (بالإنجليزي مثل: Aries / Virgo / Loveshot)"
-          name="name"
-          placeholder="اكتب اسم المنتج"
-          value={product.name}
+          label="اسم المنتج (EN) — سيُستخدم أيضًا  أساسية"
+          name="name_en"
+          placeholder="مثال: ARIES / LOVESHOT / BLINDFOLD"
+          value={product.name_en}
+          onChange={handleChange}
+        />
+        <TextInput
+          label="اسم المنتج (AR)"
+          name="name_ar"
+          placeholder="مثال: برج الحمل / لوف شوت / بليندفولد"
+          value={product.name_ar}
           onChange={handleChange}
         />
 
+
+
+        {/* ==== التصنيف والحجم ==== */}
         <SelectInput
           label="تصنيف المنتج"
           name="category"
@@ -170,6 +207,7 @@ const AddProduct = () => {
           />
         )}
 
+        {/* ==== موضع الرئيسية ==== */}
         <SelectInput
           label="موضع الصفحة الرئيسية (1–6)"
           name="homeIndex"
@@ -178,6 +216,7 @@ const AddProduct = () => {
           options={homeIndexOptions}
         />
 
+        {/* ==== الأسعار ==== */}
         <TextInput
           label="السعر القديم (اختياري)"
           name="oldPrice"
@@ -196,22 +235,43 @@ const AddProduct = () => {
           onChange={handleChange}
         />
 
-        <UploadImage name="image" id="image" setImage={setImage} />
+        {/* ==== الصور ==== */}
+{/* ==== الصور ==== */}
+<UploadImage name="image" id="image" uploaded={image} setImage={setImage} />
 
+        {/* ==== الوصف (إنجليزي/عربي) ==== */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            وصف المنتج
+          <label htmlFor="description_en" className="block text-sm font-medium text-gray-700">
+            وصف المنتج (EN)
           </label>
           <textarea
-            name="description"
-            id="description"
+            name="description_en"
+            id="description_en"
             className="add-product-InputCSS"
-            value={product.description}
-            placeholder="اكتب وصف المنتج (المكونات/الرائحة/طريقة الاستخدام)"
+            value={product.description_en}
+            placeholder="Ingredients / scent / how to use…"
             onChange={handleChange}
             rows={4}
           />
         </div>
+
+        <div>
+          <label htmlFor="description_ar" className="block text-sm font-medium text-gray-700">
+            وصف المنتج (AR)
+          </label>
+          <textarea
+            name="description_ar"
+            id="description_ar"
+            className="add-product-InputCSS"
+            value={product.description_ar}
+            placeholder="المكونات / الرائحة / طريقة الاستخدام…"
+            onChange={handleChange}
+            rows={4}
+          />
+        </div>
+
+        {/* (اختياري) حقل التوافق — يملأ تلقائيًا من (وصف EN) إن تركته فارغًا */}
+
 
         <div>
           <button type="submit" className="add-product-btn" disabled={isLoading}>

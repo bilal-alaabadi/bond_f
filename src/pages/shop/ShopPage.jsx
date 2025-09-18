@@ -1,4 +1,6 @@
+// src/pages/shop/ShopPage.jsx
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import ProductCards from "./ProductCards";
 import ShopFiltering from "./ShopFiltering";
 import { useFetchAllProductsQuery } from "../../redux/features/products/productsApi";
@@ -17,9 +19,11 @@ const filters = {
 };
 
 const ShopPage = () => {
+  const lang = useSelector((s) => s.locale.lang || "en");
+
   const [filtersState, setFiltersState] = useState({ category: "All" });
   const [currentPage, setCurrentPage] = useState(1);
-  const [ProductsPerPage] = useState(12); // 4 x 3 grid like the screenshot
+  const [ProductsPerPage] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
 
   const { category } = filtersState;
@@ -36,6 +40,7 @@ const ShopPage = () => {
     category: category !== "All" ? category : undefined,
     page: currentPage,
     limit: ProductsPerPage,
+    lang, // <-- مهم جداً ليرجع الوصف/الاسم مترجمين
   });
 
   const clearFilters = () => setFiltersState({ category: "All" });
@@ -44,8 +49,8 @@ const ShopPage = () => {
     if (pageNumber > 0 && pageNumber <= totalPages) setCurrentPage(pageNumber);
   };
 
-  if (isLoading) return <div className="text-center py-12">Loading products…</div>;
-  if (error) return <div className="text-center py-12 text-red-500">Failed to load products.</div>;
+  if (isLoading) return <div className="text-center py-12">{lang === "ar" ? "جاري تحميل المنتجات..." : "Loading products…"}</div>;
+  if (error) return <div className="text-center py-12 text-red-500">{lang === "ar" ? "فشل في جلب المنتجات." : "Failed to load products."}</div>;
 
   const startProduct = (currentPage - 1) * ProductsPerPage + 1;
   const endProduct = Math.min(startProduct + ProductsPerPage - 1, totalProducts);
@@ -53,6 +58,7 @@ const ShopPage = () => {
   return (
     <section className="py-8 pt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
         {/* Top toolbar (mobile toggle + count) */}
         <div className="mb-6 flex items-center justify-between">
           <button
@@ -61,11 +67,13 @@ const ShopPage = () => {
             aria-label="Toggle filters"
           >
             <i className="ri-equalizer-line text-lg" />
-            Filters
+            {lang === "ar" ? "الفلاتر" : "Filters"}
           </button>
 
           <div className="text-sm text-gray-700">
-            Products <span className="font-medium">{totalProducts}</span> items
+            {lang === "ar" ? "عدد المنتجات" : "Products"}{" "}
+            <span className="font-medium">{totalProducts}</span>{" "}
+            {lang === "ar" ? "عنصر" : "items"}
           </div>
         </div>
 
@@ -89,8 +97,11 @@ const ShopPage = () => {
             {/* Results header (desktop) */}
             <div className="hidden md:flex items-center justify-between mb-4">
               <h3 className="text-sm text-gray-600">
-                Showing <span className="font-medium">{startProduct}-{endProduct}</span> of{" "}
-                <span className="font-medium">{totalProducts}</span> products
+                {lang === "ar" ? "إظهار" : "Showing"}{" "}
+                <span className="font-medium">{startProduct}-{endProduct}</span>{" "}
+                {lang === "ar" ? "من" : "of"}{" "}
+                <span className="font-medium">{totalProducts}</span>{" "}
+                {lang === "ar" ? "منتج" : "products"}
               </h3>
             </div>
 
@@ -102,7 +113,7 @@ const ShopPage = () => {
                 {totalPages > 1 && (
                   <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages}
+                      {lang === "ar" ? "الصفحة" : "Page"} {currentPage} {lang === "ar" ? "من" : "of"} {totalPages}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -114,7 +125,7 @@ const ShopPage = () => {
                             : "hover:bg-gray-50"
                         }`}
                       >
-                        Previous
+                        {lang === "ar" ? "السابق" : "Previous"}
                       </button>
 
                       <div className="flex gap-1">
@@ -142,7 +153,7 @@ const ShopPage = () => {
                             : "hover:bg-gray-50"
                         }`}
                       >
-                        Next
+                        {lang === "ar" ? "التالي" : "Next"}
                       </button>
                     </div>
                   </div>
@@ -150,12 +161,14 @@ const ShopPage = () => {
               </>
             ) : (
               <div className="rounded-lg border bg-white p-10 text-center">
-                <p className="text-gray-600">No products match the selected filters.</p>
+                <p className="text-gray-600">
+                  {lang === "ar" ? "لا توجد منتجات مطابقة للفلاتر المحددة." : "No products match the selected filters."}
+                </p>
                 <button
                   onClick={clearFilters}
                   className="mt-4 inline-flex rounded-md bg-black px-4 py-2 text-white hover:opacity-90"
                 >
-                  Show all products
+                  {lang === "ar" ? "عرض كل المنتجات" : "Show all products"}
                 </button>
               </div>
             )}
